@@ -2,14 +2,16 @@ package ac_ocpp
 
 import (
 	"context"
+	v1 "github.com/Kotodian/registry/pb/v1"
 	"github.com/go-redis/redis/v8"
 	"time"
 )
 
 type AcOCPP struct {
-	prefix   string
-	hostname string
-	client   *redis.Client
+	prefix       string
+	hostname     string
+	redisClient  *redis.Client
+	masterClient v1.MasterClient
 }
 
 func (a *AcOCPP) Prefix() string {
@@ -19,12 +21,15 @@ func (a *AcOCPP) Key() string {
 	return a.prefix + a.hostname
 }
 
-func NewWorker(prefix, hostname string, client *redis.Client) *AcOCPP {
-	return &AcOCPP{prefix, hostname, client}
+func NewWorker(prefix,
+	hostname string,
+	client *redis.Client,
+	masterClient v1.MasterClient) *AcOCPP {
+	return &AcOCPP{prefix, hostname, client, masterClient}
 }
 
 func (a *AcOCPP) Register(ctx context.Context) error {
-	err := a.client.HSet(ctx, a.Key(),
+	err := a.redisClient.HSet(ctx, a.Key(),
 		"hostname", a.hostname).Err()
 	if err != nil {
 		return err
@@ -41,7 +46,7 @@ func (a *AcOCPP) Heartbeat(ctx context.Context, duration time.Duration) error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				err := a.client.Expire(ctx, a.Key(), 20*time.Second).Err()
+				err := a.redisClient.Expire(ctx, a.Key(), 20*time.Second).Err()
 				if err != nil {
 					return
 				}
@@ -52,5 +57,11 @@ func (a *AcOCPP) Heartbeat(ctx context.Context, duration time.Duration) error {
 }
 
 func (a *AcOCPP) NotifyMaster(ctx context.Context) error {
+	_, err := a.masterClient.AddMember(ctx, &v1.AddMemberReq{
+		Hostname: a.hostname,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "./v1";
+
+service Master {
+  rpc AddMember(AddMemberReq) returns (AddMemberResp);
+}
+
+message AddMemberReq {
+  string hostname = 1;
+}
+
+message AddMemberResp {
+  int32 code = 1;
+  string msg = 2;
+}
