@@ -1,5 +1,37 @@
 package main
 
-func main() {
+import (
+	"context"
+	"github.com/Kotodian/registry"
+	"github.com/Kotodian/registry/example/common"
+	v1 "github.com/Kotodian/registry/pb/v1"
+	ac_ocpp "github.com/Kotodian/registry/worker/ac-ocpp"
+	"google.golang.org/grpc"
+	"net"
+)
 
+type MasterServer struct {
+	master *registry.Master
+}
+
+func (m *MasterServer) AddMember(ctx context.Context, req *v1.AddMemberReq) (*v1.AddMemberResp, error) {
+	err := m.master.AddMember(ac_ocpp.NewSimpleWorker(req.GetHostname()))
+	if err != nil {
+		return nil, err
+	}
+	return &v1.AddMemberResp{}, nil
+}
+
+func main() {
+	master := registry.NewMaster(common.RedisClient)
+	server := grpc.NewServer()
+	v1.RegisterMasterServer(server, &MasterServer{master: master})
+	listener, err := net.Listen("tcp", "8090")
+	if err != nil {
+		panic(err)
+	}
+
+	if err = server.Serve(listener); err != nil {
+		panic(err)
+	}
 }

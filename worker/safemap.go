@@ -6,18 +6,18 @@ import (
 
 type WorkerMap struct {
 	lock *sync.RWMutex
-	bm   map[string]Worker
+	bm   map[string]SimpleWorker
 }
 
 func NewWorkerMap() *WorkerMap {
 	return &WorkerMap{
 		lock: new(sync.RWMutex),
-		bm:   make(map[string]Worker),
+		bm:   make(map[string]SimpleWorker),
 	}
 }
 
 //Get from maps return the k's value
-func (m *WorkerMap) Get(k string) Worker {
+func (m *WorkerMap) Get(k string) SimpleWorker {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	if val, ok := m.bm[k]; ok {
@@ -35,7 +35,7 @@ func (m *WorkerMap) Size() int {
 
 // Set Maps the given key and value. Returns false
 // if the key is already in the map and changes nothing.
-func (m *WorkerMap) Set(k string, v Worker) bool {
+func (m *WorkerMap) Set(k string, v SimpleWorker) bool {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if val, ok := m.bm[k]; !ok {
@@ -77,10 +77,10 @@ func (m *WorkerMap) Keys() []string {
 	return keys
 }
 
-func (m *WorkerMap) Workers() []Worker {
+func (m *WorkerMap) Workers() []SimpleWorker {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	var workers []Worker
+	var workers []SimpleWorker
 	if len(m.bm) == 0 {
 		return nil
 	}

@@ -13,12 +13,14 @@ type Master struct {
 }
 
 func NewMaster(client *redis.Client) *Master {
-	return &Master{
+	master := &Master{
 		members: worker.WorkerMap{},
 		client:  client,
 	}
+	go master.sync()
+	return master
 }
-func (m *Master) AddMember(worker worker.Worker) error {
+func (m *Master) AddMember(worker worker.SimpleWorker) error {
 	result, err := m.client.HGetAll(context.Background(),
 		worker.Key()).
 		Result()
@@ -63,10 +65,10 @@ func (m *Master) workerSync() {
 	}
 }
 
-func (m *Master) Members() []worker.Worker {
+func (m *Master) Members() []worker.SimpleWorker {
 	return m.members.Workers()
 }
 
-func (m *Master) Member(key string) worker.Worker {
+func (m *Master) Member(key string) worker.SimpleWorker {
 	return m.members.Get(key)
 }

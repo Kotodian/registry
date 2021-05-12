@@ -12,3 +12,7 @@ type Worker interface {
 	Heartbeat(ctx context.Context, duration time.Duration) error
 	NotifyMaster(ctx context.Context) error
 }
+
+type SimpleWorker interface {
+	Key() string
+}

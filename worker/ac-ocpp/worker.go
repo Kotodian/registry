@@ -3,6 +3,7 @@ package ac_ocpp
 import (
 	"context"
 	v1 "github.com/Kotodian/registry/pb/v1"
+	"github.com/Kotodian/registry/worker"
 	"github.com/go-redis/redis/v8"
 	"time"
 )
@@ -24,8 +25,12 @@ func (a *AcOCPP) Key() string {
 func NewWorker(prefix,
 	hostname string,
 	client *redis.Client,
-	masterClient v1.MasterClient) *AcOCPP {
+	masterClient v1.MasterClient) worker.Worker {
 	return &AcOCPP{prefix, hostname, client, masterClient}
+}
+
+func NewSimpleWorker(hostname string) worker.SimpleWorker {
+	return &AcOCPP{hostname: hostname}
 }
 
 func (a *AcOCPP) Register(ctx context.Context) error {
