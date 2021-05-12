@@ -76,3 +76,16 @@ func (m *WorkerMap) Keys() []string {
 	}
 	return keys
 }
+
+func (m *WorkerMap) Workers() []Worker {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	var workers []Worker
+	if len(m.bm) == 0 {
+		return nil
+	}
+	for _, worker := range m.bm {
+		workers = append(workers, worker)
+	}
+	return workers
+}

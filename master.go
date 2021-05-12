@@ -8,10 +8,18 @@ import (
 )
 
 type Master struct {
+	lock    *SpinLock
 	members worker.WorkerMap
 	client  *redis.Client
 }
 
+func NewMaster(client *redis.Client) *Master {
+	return &Master{
+		lock:    NewSpinLock(),
+		members: worker.WorkerMap{},
+		client:  client,
+	}
+}
 func (m *Master) AddMember(worker worker.Worker) error {
 	result, err := m.client.HGetAll(context.Background(),
 		worker.Key()).
@@ -41,6 +49,7 @@ func (m *Master) sync() {
 		}
 	}()
 }
+
 func (m *Master) workerSync() {
 	keys := m.members.Keys()
 	if keys == nil {
@@ -54,4 +63,12 @@ func (m *Master) workerSync() {
 			}
 		}
 	}
+}
+
+func (m *Master) Members() []worker.Worker {
+	return m.members.Workers()
+}
+
+func (m *Master) Member(key string) worker.Worker {
+	return m.members.Get(key)
 }
