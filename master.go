@@ -8,14 +8,12 @@ import (
 )
 
 type Master struct {
-	lock    *SpinLock
 	members worker.WorkerMap
 	client  *redis.Client
 }
 
 func NewMaster(client *redis.Client) *Master {
 	return &Master{
-		lock:    NewSpinLock(),
 		members: worker.WorkerMap{},
 		client:  client,
 	}
