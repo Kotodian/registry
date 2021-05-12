@@ -22,6 +22,6 @@ type Registry interface {
 	ListServices() []Service
 	GetService(id string) (Service, error)
 	AddService(service Service) error
-	NotifyService()
+	NotifyService(handler func(service Service) error)
 	DeleteService(service Service) error
 }
