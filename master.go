@@ -11,18 +11,18 @@ import (
 )
 
 type Master struct {
-	prefix         string
-	members        *service.ServiceMap
-	redisClient    redis.UniversalClient
-	isRedisCluster bool
-	kind           reflect.Type
+	prefix      string
+	members     *service.ServiceMap
+	redisClient redis.UniversalClient
+	kind        reflect.Type
+	debug       bool
 }
 
-func NewMaster(redisClient redis.UniversalClient,
-	svc service.SimpleService) (*Master, error) {
+func NewMaster(redisClient redis.UniversalClient, svc service.SimpleService, debug bool) (*Master, error) {
 	master := &Master{
 		members:     service.NewServiceMap(),
 		redisClient: redisClient,
+		debug:       debug,
 	}
 
 	master.prefix = svc.Prefix()
@@ -50,10 +50,6 @@ func (m *Master) AddMember(worker service.SimpleService) error {
 	return nil
 }
 
-func (m *Master) RmMember(key string) {
-	m.members.Delete(key)
-}
-
 func (m *Master) start() error {
 	var results []string
 	var err error
@@ -62,6 +58,9 @@ func (m *Master) start() error {
 		return err
 	}
 	if len(results) == 0 {
+		if m.debug {
+			log.Println("no service need to be reRegistered")
+		}
 		return nil
 	}
 	for _, result := range results {
@@ -69,6 +68,9 @@ func (m *Master) start() error {
 		// todo: maps := m.redisClient.HValues(context.Background, result)
 		// 		simpleService.Set(maps)
 		m.members.Set(strings.TrimPrefix(result, m.prefix), simpleService)
+		if m.debug {
+			log.Printf("service %s registered.\n", result)
+		}
 	}
 	return nil
 }
@@ -95,7 +97,9 @@ func (m *Master) workerSync() {
 		if err != nil {
 			if err == redis.Nil {
 				m.members.Delete(key)
-				log.Printf("service %s unregister\n", key)
+				if m.debug {
+					log.Printf("service %s unregister\n", key)
+				}
 			}
 		}
 	}
