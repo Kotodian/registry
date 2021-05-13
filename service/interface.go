@@ -9,6 +9,7 @@ import (
 type Service interface {
 	SimpleService
 	Register(ctx context.Context) error
+	UnRegister(ctx context.Context) error
 	Heartbeat(ctx context.Context, duration time.Duration) error
 	NotifyMaster(ctx context.Context) error
 }

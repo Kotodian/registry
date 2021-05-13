@@ -19,6 +19,7 @@ type AcOCPP struct {
 	redisClient    redis.UniversalClient
 	masterClient   v1.MasterClient
 	isRedisCluster bool
+	stop           chan struct{}
 }
 
 func init() {
@@ -40,6 +41,7 @@ func NewService(
 		hostname:     hostname,
 		redisClient:  redisClient,
 		masterClient: masterClient,
+		stop:         make(chan struct{}),
 	}
 
 	return svc
@@ -68,6 +70,8 @@ func (a *AcOCPP) Heartbeat(ctx context.Context, duration time.Duration) error {
 			select {
 			case <-ctx.Done():
 				return
+			case <-a.stop:
+				return
 			case <-ticker.C:
 				err := a.redisClient.Expire(ctx, a.Key(), 5*time.Second).Err()
 				if err != nil {
@@ -92,4 +96,13 @@ func (a *AcOCPP) NotifyMaster(ctx context.Context) error {
 
 func (a *AcOCPP) Set(map[string]string) {
 
+}
+
+func (a *AcOCPP) UnRegister(ctx context.Context) error {
+	err := a.redisClient.Del(ctx, a.Key()).Err()
+	if err != nil {
+		return err
+	}
+	a.stop <- struct{}{}
+	return nil
 }
