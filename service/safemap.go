@@ -6,18 +6,18 @@ import (
 
 type ServiceMap struct {
 	lock *sync.RWMutex
-	bm   map[string]Service
+	bm   map[string]SimpleService
 }
 
-func NewWorkerMap() *ServiceMap {
+func NewServiceMap() *ServiceMap {
 	return &ServiceMap{
 		lock: new(sync.RWMutex),
-		bm:   make(map[string]Service),
+		bm:   make(map[string]SimpleService),
 	}
 }
 
 //Get from maps return the k's value
-func (m *ServiceMap) Get(k string) Service {
+func (m *ServiceMap) Get(k string) SimpleService {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	if val, ok := m.bm[k]; ok {
@@ -35,7 +35,7 @@ func (m *ServiceMap) Size() int {
 
 // Set Maps the given key and value. Returns false
 // if the key is already in the map and changes nothing.
-func (m *ServiceMap) Set(k string, v Service) bool {
+func (m *ServiceMap) Set(k string, v SimpleService) bool {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if val, ok := m.bm[k]; !ok {
@@ -77,10 +77,10 @@ func (m *ServiceMap) Keys() []string {
 	return keys
 }
 
-func (m *ServiceMap) Workers() []Service {
+func (m *ServiceMap) Workers() []SimpleService {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	var workers []Service
+	var workers []SimpleService
 	if len(m.bm) == 0 {
 		return nil
 	}

@@ -28,19 +28,18 @@ func NewService(prefix,
 	hostname string,
 	redisClient *redis.Client,
 	redisClusterClient *redis.ClusterClient,
-	masterClient v1.MasterClient,
-	redisIsCluster bool) service.Service {
+	masterClient v1.MasterClient) service.Service {
 	svc := &AcOCPP{
 		prefix:       prefix,
 		hostname:     hostname,
 		masterClient: masterClient,
 	}
-	if redisIsCluster {
+	if redisClusterClient != nil {
 		svc.redisClusterClient = redisClusterClient
+		svc.isRedisCluster = true
 	} else {
 		svc.redisClient = redisClient
 	}
-	svc.isRedisCluster = redisIsCluster
 	return svc
 }
 
