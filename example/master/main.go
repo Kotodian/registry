@@ -5,7 +5,8 @@ import (
 	"github.com/Kotodian/registry"
 	"github.com/Kotodian/registry/example/common"
 	v1 "github.com/Kotodian/registry/pb/v1"
-	ac_ocpp2 "github.com/Kotodian/registry/service/plugin/ac-ocpp"
+	ac_ocpp "github.com/Kotodian/registry/service/plugin/ac-ocpp"
+	"github.com/Kotodian/registry/service/storage/plugin/redis"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -16,7 +17,7 @@ type MasterServer struct {
 }
 
 func (m *MasterServer) AddMember(ctx context.Context, req *v1.AddMemberReq) (*v1.AddMemberResp, error) {
-	err := m.master.AddMember(ac_ocpp2.NewSimpleService(req.GetHostname()))
+	err := m.master.AddMember(ac_ocpp.NewSimpleService(req.GetHostname()))
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +25,7 @@ func (m *MasterServer) AddMember(ctx context.Context, req *v1.AddMemberReq) (*v1
 }
 
 func main() {
-	master, err := registry.NewMaster(common.RedisClient, &ac_ocpp2.AcOCPP{}, true)
+	master, err := registry.NewMaster(redis.New(common.RedisClient), &ac_ocpp.AcOCPP{}, true)
 	server := grpc.NewServer()
 	v1.RegisterMasterServer(server, &MasterServer{master: master})
 	listener, err := net.Listen("tcp", ":8090")

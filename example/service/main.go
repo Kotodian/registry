@@ -5,6 +5,7 @@ import (
 	"github.com/Kotodian/registry/example/common"
 	v1 "github.com/Kotodian/registry/pb/v1"
 	ac_ocpp2 "github.com/Kotodian/registry/service/plugin/ac-ocpp"
+	"github.com/Kotodian/registry/service/storage/plugin/redis"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"log"
@@ -32,7 +33,7 @@ func newWorker() {
 	ctx := context.Background()
 	worker := ac_ocpp2.NewService(
 		uuid.New().String(),
-		common.RedisClient,
+		redis.New(common.RedisClient),
 		v1.NewMasterClient(conn))
 
 	err = worker.Register(ctx)
