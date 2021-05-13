@@ -5,7 +5,7 @@ import (
 	"github.com/Kotodian/registry"
 	"github.com/Kotodian/registry/example/common"
 	v1 "github.com/Kotodian/registry/pb/v1"
-	ac_ocpp "github.com/Kotodian/registry/worker/ac-ocpp"
+	ac_ocpp "github.com/Kotodian/registry/service/ac-ocpp"
 	"google.golang.org/grpc"
 	"net"
 )
@@ -15,7 +15,7 @@ type MasterServer struct {
 }
 
 func (m *MasterServer) AddMember(ctx context.Context, req *v1.AddMemberReq) (*v1.AddMemberResp, error) {
-	err := m.master.AddMember(ac_ocpp.NewSimpleWorker(req.GetHostname()))
+	err := m.master.AddMember(ac_ocpp.NewSimpleService(req.GetHostname()))
 	if err != nil {
 		return nil, err
 	}

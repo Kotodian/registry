@@ -1,23 +1,23 @@
-package worker
+package service
 
 import (
 	"sync"
 )
 
-type WorkerMap struct {
+type ServiceMap struct {
 	lock *sync.RWMutex
-	bm   map[string]SimpleWorker
+	bm   map[string]Service
 }
 
-func NewWorkerMap() *WorkerMap {
-	return &WorkerMap{
+func NewWorkerMap() *ServiceMap {
+	return &ServiceMap{
 		lock: new(sync.RWMutex),
-		bm:   make(map[string]SimpleWorker),
+		bm:   make(map[string]Service),
 	}
 }
 
 //Get from maps return the k's value
-func (m *WorkerMap) Get(k string) SimpleWorker {
+func (m *ServiceMap) Get(k string) Service {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	if val, ok := m.bm[k]; ok {
@@ -27,7 +27,7 @@ func (m *WorkerMap) Get(k string) SimpleWorker {
 }
 
 //Size Get Size
-func (m *WorkerMap) Size() int {
+func (m *ServiceMap) Size() int {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	return len(m.bm)
@@ -35,7 +35,7 @@ func (m *WorkerMap) Size() int {
 
 // Set Maps the given key and value. Returns false
 // if the key is already in the map and changes nothing.
-func (m *WorkerMap) Set(k string, v SimpleWorker) bool {
+func (m *ServiceMap) Set(k string, v Service) bool {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if val, ok := m.bm[k]; !ok {
@@ -49,7 +49,7 @@ func (m *WorkerMap) Set(k string, v SimpleWorker) bool {
 }
 
 // Check Returns true if k is exist in the map.
-func (m *WorkerMap) Check(k string) bool {
+func (m *ServiceMap) Check(k string) bool {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	if _, ok := m.bm[k]; !ok {
@@ -58,13 +58,13 @@ func (m *WorkerMap) Check(k string) bool {
 	return true
 }
 
-func (m *WorkerMap) Delete(k string) {
+func (m *ServiceMap) Delete(k string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	delete(m.bm, k)
 }
 
-func (m *WorkerMap) Keys() []string {
+func (m *ServiceMap) Keys() []string {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	var keys []string
@@ -77,10 +77,10 @@ func (m *WorkerMap) Keys() []string {
 	return keys
 }
 
-func (m *WorkerMap) Workers() []SimpleWorker {
+func (m *ServiceMap) Workers() []Service {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	var workers []SimpleWorker
+	var workers []Service
 	if len(m.bm) == 0 {
 		return nil
 	}

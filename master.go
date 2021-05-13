@@ -8,19 +8,19 @@ import (
 )
 
 type Master struct {
-	members worker.WorkerMap
+	members service.WorkerMap
 	client  *redis.Client
 }
 
 func NewMaster(client *redis.Client) *Master {
 	master := &Master{
-		members: worker.WorkerMap{},
+		members: service.WorkerMap{},
 		client:  client,
 	}
 	go master.sync()
 	return master
 }
-func (m *Master) AddMember(worker worker.SimpleWorker) error {
+func (m *Master) AddMember(worker service.SimpleWorker) error {
 	result, err := m.client.HGetAll(context.Background(),
 		worker.Key()).
 		Result()
@@ -65,10 +65,10 @@ func (m *Master) workerSync() {
 	}
 }
 
-func (m *Master) Members() []worker.SimpleWorker {
+func (m *Master) Members() []service.SimpleWorker {
 	return m.members.Workers()
 }
 
-func (m *Master) Member(key string) worker.SimpleWorker {
+func (m *Master) Member(key string) service.SimpleWorker {
 	return m.members.Get(key)
 }

@@ -3,7 +3,7 @@ package ac_ocpp
 import (
 	"context"
 	v1 "github.com/Kotodian/registry/pb/v1"
-	"github.com/Kotodian/registry/worker"
+	"github.com/Kotodian/registry/service"
 	"github.com/go-redis/redis/v8"
 	"time"
 )
@@ -22,14 +22,14 @@ func (a *AcOCPP) Key() string {
 	return a.prefix + a.hostname
 }
 
-func NewWorker(prefix,
+func NewService(prefix,
 	hostname string,
 	client *redis.Client,
-	masterClient v1.MasterClient) worker.Worker {
+	masterClient v1.MasterClient) service.Service {
 	return &AcOCPP{prefix, hostname, client, masterClient}
 }
 
-func NewSimpleWorker(hostname string) worker.SimpleWorker {
+func NewSimpleService(hostname string) service.Service {
 	return &AcOCPP{hostname: hostname}
 }
 
