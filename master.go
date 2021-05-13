@@ -3,7 +3,7 @@ package registry
 import (
 	"context"
 	"github.com/Kotodian/registry/service"
-	"github.com/go-redis/redis/v8"
+	"github.com/Kotodian/registry/service/storage"
 	"log"
 	"reflect"
 	"strings"
@@ -11,18 +11,18 @@ import (
 )
 
 type Master struct {
-	prefix      string
-	members     *service.ServiceMap
-	redisClient redis.UniversalClient
-	kind        reflect.Type
-	debug       bool
+	prefix  string
+	members *service.ServiceMap
+	store   storage.Storage
+	kind    reflect.Type
+	debug   bool
 }
 
-func NewMaster(redisClient redis.UniversalClient, svc service.SimpleService, debug bool) (*Master, error) {
+func NewMaster(store storage.Storage, svc service.SimpleService, debug bool) (*Master, error) {
 	master := &Master{
-		members:     service.NewServiceMap(),
-		redisClient: redisClient,
-		debug:       debug,
+		members: service.NewServiceMap(),
+		store:   store,
+		debug:   debug,
 	}
 
 	master.prefix = svc.Prefix()
@@ -36,13 +36,12 @@ func NewMaster(redisClient redis.UniversalClient, svc service.SimpleService, deb
 	return master, nil
 }
 func (m *Master) AddMember(worker service.SimpleService) error {
-	result, err := m.redisClient.HGetAll(context.Background(),
-		worker.Key()).
-		Result()
+	exists, err := m.store.Exists(context.Background(),
+		worker.Key())
 	if err != nil {
 		return err
 	}
-	if len(result) > 0 {
+	if exists {
 		m.members.Set(strings.TrimPrefix(worker.Key(), m.prefix), worker)
 	}
 
@@ -53,7 +52,7 @@ func (m *Master) AddMember(worker service.SimpleService) error {
 func (m *Master) start() error {
 	var results []string
 	var err error
-	results, err = m.redisClient.Keys(context.Background(), m.prefix+"*").Result()
+	results, err = m.store.Keys(context.Background(), m.prefix+"*")
 	if err != nil {
 		return err
 	}
@@ -95,14 +94,14 @@ func (m *Master) workerSync() {
 		return
 	}
 	for _, key := range keys {
-		result, err := m.redisClient.Exists(context.Background(), m.prefix+key).Result()
+		exists, err := m.store.Exists(context.Background(), m.prefix+key)
 		if err != nil {
 			m.members.Delete(key)
 			if m.debug {
 				log.Printf("service %s unregister\n", key)
 			}
 		}
-		if result == 0 {
+		if !exists {
 			m.members.Delete(key)
 			if m.debug {
 				log.Printf("service %s unregister\n", key)

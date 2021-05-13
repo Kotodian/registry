@@ -1,11 +1,12 @@
 package ac_ocpp
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	v1 "github.com/Kotodian/registry/pb/v1"
 	"github.com/Kotodian/registry/service"
-	"github.com/go-redis/redis/v8"
-	"log"
+	"github.com/Kotodian/registry/service/storage"
 	"reflect"
 	"time"
 )
@@ -16,7 +17,7 @@ const (
 
 type AcOCPP struct {
 	hostname       string
-	redisClient    redis.UniversalClient
+	store          storage.Storage
 	masterClient   v1.MasterClient
 	isRedisCluster bool
 	stop           chan struct{}
@@ -35,11 +36,11 @@ func (a *AcOCPP) Key() string {
 
 func NewService(
 	hostname string,
-	redisClient redis.UniversalClient,
+	storage storage.Storage,
 	masterClient v1.MasterClient) service.Service {
 	svc := &AcOCPP{
 		hostname:     hostname,
-		redisClient:  redisClient,
+		store:        storage,
 		masterClient: masterClient,
 		stop:         make(chan struct{}),
 	}
@@ -52,35 +53,21 @@ func NewSimpleService(hostname string) service.SimpleService {
 }
 
 func (a *AcOCPP) Register(ctx context.Context) error {
-	if err := a.redisClient.HSet(ctx, a.Key(), "hostname", a.hostname).Err(); err != nil {
+	if exists, err := a.store.Exists(ctx, a.Key()); err != nil {
 		return err
-	}
-	err := a.redisClient.Expire(ctx, a.Key(), 5*time.Second).Err()
-	if err != nil {
-		return nil
+	} else {
+		if !exists {
+			err = a.store.Add(ctx, a)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 func (a *AcOCPP) Heartbeat(ctx context.Context, duration time.Duration) error {
-	go func(ctx context.Context) {
-		ticker := time.NewTicker(duration)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-a.stop:
-				return
-			case <-ticker.C:
-				err := a.redisClient.Expire(ctx, a.Key(), 5*time.Second).Err()
-				if err != nil {
-					return
-				}
-				log.Printf("%s heartbeat\n", a.Key())
-			}
-		}
-	}(ctx)
+	go a.store.KeepAlive(ctx, a.Key(), duration, a.stop)
 	return nil
 }
 
@@ -99,10 +86,28 @@ func (a *AcOCPP) Set(map[string]string) {
 }
 
 func (a *AcOCPP) UnRegister(ctx context.Context) error {
-	err := a.redisClient.Del(ctx, a.Key()).Err()
+	err := a.store.Delete(ctx, a.Key())
 	if err != nil {
 		return err
 	}
 	a.stop <- struct{}{}
 	return nil
+}
+
+func (a *AcOCPP) SimpleService() service.SimpleService {
+	simpleService := &AcOCPP{}
+	err := deepcopy(a, simpleService)
+	if err != nil {
+		return nil
+	}
+	return simpleService
+}
+
+func deepcopy(src interface{}, dst interface{}) error {
+	var buffer bytes.Buffer
+	if err := gob.NewEncoder(&buffer).Encode(src); err != nil {
+		return err
+	}
+
+	return gob.NewDecoder(&buffer).Decode(dst)
 }

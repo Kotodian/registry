@@ -7,7 +7,7 @@ import (
 )
 
 type Service interface {
-	SimpleService
+	SimpleService() SimpleService
 	Register(ctx context.Context) error
 	UnRegister(ctx context.Context) error
 	Heartbeat(ctx context.Context, duration time.Duration) error
