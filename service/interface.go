@@ -7,8 +7,7 @@ import (
 )
 
 type Service interface {
-	Prefix() string
-	Key() string
+	SimpleService
 	Register(ctx context.Context) error
 	Heartbeat(ctx context.Context, duration time.Duration) error
 	NotifyMaster(ctx context.Context) error
