@@ -22,13 +22,14 @@ func main() {
 }
 
 func newWorker() {
-	conn, err := grpc.Dial("127.0.0.1:8090")
+	conn, err := grpc.Dial("127.0.0.1:8090", grpc.WithInsecure())
 	failOnErr(err)
 
 	ctx := context.Background()
 	worker := ac_ocpp.NewService("",
 		uuid.New().String(),
 		common.RedisClient,
+		nil,
 		v1.NewMasterClient(conn))
 
 	err = worker.Register(ctx)

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"reflect"
 	"time"
 )
 
@@ -14,5 +15,11 @@ type Service interface {
 }
 
 type SimpleService interface {
+	Prefix() string
 	Key() string
+	Set(map[string]string)
 }
+
+var (
+	Kind = make(map[reflect.Type]func(key string) SimpleService)
+)

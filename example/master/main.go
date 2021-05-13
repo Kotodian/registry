@@ -7,6 +7,7 @@ import (
 	v1 "github.com/Kotodian/registry/pb/v1"
 	ac_ocpp "github.com/Kotodian/registry/service/ac-ocpp"
 	"google.golang.org/grpc"
+	"log"
 	"net"
 )
 
@@ -23,15 +24,17 @@ func (m *MasterServer) AddMember(ctx context.Context, req *v1.AddMemberReq) (*v1
 }
 
 func main() {
-	master := registry.NewMaster(common.RedisClient)
+	master, err := registry.NewMaster(common.RedisClient, nil, &ac_ocpp.AcOCPP{})
 	server := grpc.NewServer()
 	v1.RegisterMasterServer(server, &MasterServer{master: master})
-	listener, err := net.Listen("tcp", "8090")
+	listener, err := net.Listen("tcp", ":8090")
 	if err != nil {
 		panic(err)
 	}
 
 	if err = server.Serve(listener); err != nil {
 		panic(err)
+	} else {
+		log.Println("server listen: 8090")
 	}
 }
