@@ -26,10 +26,9 @@ func newWorker() {
 	failOnErr(err)
 
 	ctx := context.Background()
-	worker := ac_ocpp.NewService("",
+	worker := ac_ocpp.NewService(
 		uuid.New().String(),
 		common.RedisClient,
-		nil,
 		v1.NewMasterClient(conn))
 
 	err = worker.Register(ctx)

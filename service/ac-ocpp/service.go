@@ -10,8 +10,11 @@ import (
 	"time"
 )
 
+const (
+	Prefix = "ac-ocpp:"
+)
+
 type AcOCPP struct {
-	prefix         string
 	hostname       string
 	redisClient    redis.UniversalClient
 	masterClient   v1.MasterClient
@@ -23,10 +26,10 @@ func init() {
 }
 
 func (a *AcOCPP) Prefix() string {
-	return a.prefix
+	return Prefix
 }
 func (a *AcOCPP) Key() string {
-	return a.prefix + a.hostname
+	return Prefix + a.hostname
 }
 
 func NewService(
@@ -34,7 +37,6 @@ func NewService(
 	redisClient redis.UniversalClient,
 	masterClient v1.MasterClient) service.Service {
 	svc := &AcOCPP{
-		prefix:       "ac-ocpp:",
 		hostname:     hostname,
 		redisClient:  redisClient,
 		masterClient: masterClient,
@@ -44,7 +46,7 @@ func NewService(
 }
 
 func NewSimpleService(hostname string) service.SimpleService {
-	return &AcOCPP{hostname: hostname, prefix: "ac-ocpp:"}
+	return &AcOCPP{hostname: hostname}
 }
 
 func (a *AcOCPP) Register(ctx context.Context) error {
