@@ -53,6 +53,10 @@ func (a *AcOCPP) Register(ctx context.Context) error {
 	if err := a.redisClient.HSet(ctx, a.Key(), "hostname", a.hostname).Err(); err != nil {
 		return err
 	}
+	err := a.redisClient.Expire(ctx, a.Key(), 5*time.Second).Err()
+	if err != nil {
+		return nil
+	}
 	return nil
 }
 
@@ -65,7 +69,7 @@ func (a *AcOCPP) Heartbeat(ctx context.Context, duration time.Duration) error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				err := a.redisClient.Expire(ctx, a.Key(), 20*time.Second).Err()
+				err := a.redisClient.Expire(ctx, a.Key(), 5*time.Second).Err()
 				if err != nil {
 					return
 				}

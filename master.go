@@ -42,8 +42,8 @@ func (m *Master) AddMember(worker service.SimpleService) error {
 	if err != nil {
 		return err
 	}
-	if result == nil {
-		m.members.Set(worker.Key(), worker)
+	if len(result) > 0 {
+		m.members.Set(strings.TrimPrefix(worker.Key(), m.prefix), worker)
 	}
 
 	log.Printf("service: %s register\n", worker.Key())
@@ -75,31 +75,37 @@ func (m *Master) start() error {
 	return nil
 }
 func (m *Master) sync() {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				m.workerSync()
-			}
+
+	for {
+		select {
+		case <-ticker.C:
+			m.workerSync()
 		}
-	}()
+	}
 }
 
 func (m *Master) workerSync() {
 	keys := m.members.Keys()
 	if keys == nil {
+		if m.debug {
+			log.Printf("no need to sync\n")
+		}
 		return
 	}
 	for _, key := range keys {
-		err := m.redisClient.HGetAll(context.Background(), key).Err()
+		result, err := m.redisClient.Exists(context.Background(), m.prefix+key).Result()
 		if err != nil {
-			if err == redis.Nil {
-				m.members.Delete(key)
-				if m.debug {
-					log.Printf("service %s unregister\n", key)
-				}
+			m.members.Delete(key)
+			if m.debug {
+				log.Printf("service %s unregister\n", key)
+			}
+		}
+		if result == 0 {
+			m.members.Delete(key)
+			if m.debug {
+				log.Printf("service %s unregister\n", key)
 			}
 		}
 	}

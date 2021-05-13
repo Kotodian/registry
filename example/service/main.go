@@ -17,6 +17,10 @@ func failOnErr(err error) {
 	}
 }
 func main() {
+	for i := 0; i < 10; i++ {
+		go newWorker()
+		time.Sleep(100 * time.Millisecond)
+	}
 	newWorker()
 	select {}
 }
