@@ -9,10 +9,12 @@ import (
 )
 
 type AcOCPP struct {
-	prefix       string
-	hostname     string
-	redisClient  *redis.Client
-	masterClient v1.MasterClient
+	prefix             string
+	hostname           string
+	redisClient        *redis.Client
+	redisClusterClient *redis.ClusterClient
+	masterClient       v1.MasterClient
+	isRedisCluster     bool
 }
 
 func (a *AcOCPP) Prefix() string {
@@ -24,9 +26,22 @@ func (a *AcOCPP) Key() string {
 
 func NewService(prefix,
 	hostname string,
-	client *redis.Client,
-	masterClient v1.MasterClient) service.Service {
-	return &AcOCPP{prefix, hostname, client, masterClient}
+	redisClient *redis.Client,
+	redisClusterClient *redis.ClusterClient,
+	masterClient v1.MasterClient,
+	redisIsCluster bool) service.Service {
+	svc := &AcOCPP{
+		prefix:       prefix,
+		hostname:     hostname,
+		masterClient: masterClient,
+	}
+	if redisIsCluster {
+		svc.redisClusterClient = redisClusterClient
+	} else {
+		svc.redisClient = redisClient
+	}
+	svc.isRedisCluster = redisIsCluster
+	return svc
 }
 
 func NewSimpleService(hostname string) service.Service {
@@ -34,15 +49,21 @@ func NewSimpleService(hostname string) service.Service {
 }
 
 func (a *AcOCPP) Register(ctx context.Context) error {
-	err := a.redisClient.HSet(ctx, a.Key(),
-		"hostname", a.hostname).Err()
-	if err != nil {
-		return err
+	if a.isRedisCluster {
+		if err := a.redisClusterClient.HSet(ctx, a.Key(), "hostname", a.hostname).Err(); err != nil {
+			return err
+		}
+	} else {
+		if err := a.redisClient.HSet(ctx, a.Key(), "hostname", a.hostname).Err(); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
 func (a *AcOCPP) Heartbeat(ctx context.Context, duration time.Duration) error {
+
 	go func(ctx context.Context) {
 		ticker := time.NewTicker(duration)
 		defer ticker.Stop()
@@ -51,9 +72,16 @@ func (a *AcOCPP) Heartbeat(ctx context.Context, duration time.Duration) error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				err := a.redisClient.Expire(ctx, a.Key(), 20*time.Second).Err()
-				if err != nil {
-					return
+				if a.isRedisCluster {
+					err := a.redisClusterClient.Expire(ctx, a.Key(), 20*time.Second).Err()
+					if err != nil {
+						return
+					}
+				} else {
+					err := a.redisClient.Expire(ctx, a.Key(), 20*time.Second).Err()
+					if err != nil {
+						return
+					}
 				}
 			}
 		}
