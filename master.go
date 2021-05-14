@@ -16,6 +16,7 @@ type Master struct {
 	store   storage.Storage
 	kind    reflect.Type
 	debug   bool
+	stop    chan struct{}
 }
 
 func NewMaster(store storage.Storage, svc service.SimpleService, debug bool) (*Master, error) {
@@ -23,6 +24,7 @@ func NewMaster(store storage.Storage, svc service.SimpleService, debug bool) (*M
 		members: service.NewServiceMap(),
 		store:   store,
 		debug:   debug,
+		stop:    make(chan struct{}),
 	}
 
 	master.prefix = svc.Prefix()
@@ -81,8 +83,17 @@ func (m *Master) sync() {
 		select {
 		case <-ticker.C:
 			m.workerSync()
+		case <-m.stop:
+			return
 		}
 	}
+}
+
+func (m *Master) Restart() {
+	go m.sync()
+}
+func (m *Master) Stop() {
+	m.stop <- struct{}{}
 }
 
 func (m *Master) workerSync() {
