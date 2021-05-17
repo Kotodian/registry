@@ -2,8 +2,10 @@ package registry
 
 import (
 	"context"
+	v1 "github.com/Kotodian/registry/pb/v1"
 	"github.com/Kotodian/registry/service"
 	"github.com/Kotodian/registry/service/storage"
+	"google.golang.org/grpc"
 	"log"
 	"reflect"
 	"strings"
@@ -17,6 +19,14 @@ type Master struct {
 	kind    reflect.Type
 	debug   bool
 	stop    chan struct{}
+}
+
+func NewMasterClient(addr string) v1.MasterClient {
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	if err != nil {
+		return nil
+	}
+	return v1.NewMasterClient(conn)
 }
 
 func NewMaster(store storage.Storage, svc service.SimpleService, debug bool) (*Master, error) {
